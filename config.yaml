@@ -2,7 +2,7 @@ network: "networks/elec_s_50_ec_lv1.0_Co2L0.1-1H.nc"
 
 load_shedding: true
 rolling_horizon: true
-snapshots: 100  
+snapshots: 100
 
 co2_price:
   start: 100
@@ -20,7 +20,7 @@ solver:
   method: 2
   crossover: 0
   BarConvTol: 1.e-4
-  FeasibilityTol: 1.e-5
+  FeasibilityTol: 1.e-4
   AggFill: 0
   PreDual: 0
   GURO_PAR_BARDENSETHRESH: 200

@@ -209,15 +209,16 @@ def add_to_objective(n, snapshots):
     outages = [l for l in lines if "outage" in l]
 
     coefficient1 = 1 #18000
-    coefficient2 = 0.001
+    coefficient2 = 0.0001
 
     #  (a) costs for Netzbooster capacities
     # sum_i ( c_pos * P(i)_pos + c_neg * P(i)_neg)
     # add noise to the netzbooster capacitiy costs to avoid numerical troubles
     coefficient1_noise = np.random.normal(coefficient1, .01, get_var(n, "Bus", "P_pos").shape)
+    coefficient1_noise2 = np.random.normal(coefficient1, .01, get_var(n, "Bus", "P_pos").shape)
     netzbooster_cap_cost = linexpr(
                                 (coefficient1_noise, get_var(n, "Bus", "P_pos")),
-                                (coefficient1_noise, get_var(n, "Bus", "P_neg"))
+                                (coefficient1_noise2, get_var(n, "Bus", "P_neg"))
                                 ).sum()
 
     write_objective(n, netzbooster_cap_cost)
@@ -226,14 +227,14 @@ def add_to_objective(n, snapshots):
     # (b) costs for compensation dispatch (paid to DSM consumers/running costs for storage)
     # sum_(i, t, k) ( o_pos * p(i, t, k)_pos + o_neg * p(i, t, k)_pos)
     # add noise to the marginal costs to avoid numerical troubles
-    coefficient2_noise = np.random.normal(coefficient2, .0001, get_var(n, "Bus", "p_pos").shape)
-    coefficient2_noise2 = np.random.normal(coefficient2, .0001, get_var(n, "Bus", "p_pos").shape)
+    coefficient2_noise = np.random.normal(coefficient2, .00001, get_var(n, "Bus", "p_pos").shape)
+    coefficient2_noise2 = np.random.normal(coefficient2, .00001, get_var(n, "Bus", "p_pos").shape)
     compensate_p_cost = linexpr(
                                 (coefficient2_noise, get_var(n, "Bus", "p_pos").loc[snapshots]),
                                 (coefficient2_noise2, get_var(n, "Bus", "p_neg").loc[snapshots]),
                                 ).sum().sum()
 
-    write_objective(n, compensate_p_cost)
+    # write_objective(n, compensate_p_cost)
 
 
 
