@@ -15,7 +15,7 @@ import gc
 
 # for testing
 if 'snakemake' not in globals():
-    # os.chdir("/home/ws/bw0928/mnt/lisa/netzbooster")
+    os.chdir("/home/ws/bw0928/Dokumente/netzbooster")
     from vresutils import Dict
     import yaml
     snakemake = Dict()
@@ -209,7 +209,7 @@ def add_to_objective(n, snapshots):
     outages = [l for l in lines if "outage" in l]
 
     coefficient1 = 1 #18000
-    coefficient2 = 0.0001
+    coefficient2 = 0.001
 
     #  (a) costs for Netzbooster capacities
     # sum_i ( c_pos * P(i)_pos + c_neg * P(i)_neg)
@@ -226,10 +226,11 @@ def add_to_objective(n, snapshots):
     # (b) costs for compensation dispatch (paid to DSM consumers/running costs for storage)
     # sum_(i, t, k) ( o_pos * p(i, t, k)_pos + o_neg * p(i, t, k)_pos)
     # add noise to the marginal costs to avoid numerical troubles
-    coefficient2_noise = np.random.normal(coefficient2, .00001, get_var(n, "Bus", "p_pos").shape)
+    coefficient2_noise = np.random.normal(coefficient2, .0001, get_var(n, "Bus", "p_pos").shape)
+    coefficient2_noise2 = np.random.normal(coefficient2, .0001, get_var(n, "Bus", "p_pos").shape)
     compensate_p_cost = linexpr(
                                 (coefficient2_noise, get_var(n, "Bus", "p_pos").loc[snapshots]),
-                                (coefficient2_noise, get_var(n, "Bus", "p_neg").loc[snapshots]),
+                                (coefficient2_noise2, get_var(n, "Bus", "p_neg").loc[snapshots]),
                                 ).sum().sum()
 
     write_objective(n, compensate_p_cost)
@@ -320,26 +321,26 @@ def netzbooster_constraints(n, snapshots):
 
     for k in outages:
         for l in lines.difference(pd.Index([k])):   # all l except for outage line
-            for t in snapshots:
 
-                lhs = ''
-                # sum_i (PTDF(l,i) * (p_neg(i,k, t) - p_pos(i,k, t)))
-                v1 = linexpr((ptdf.loc[l], p_neg.loc[t].xs(k, level=1)),    # sum_i (PTDF(l,i) * (p_neg(i,k, t))
-                            (-1 * ptdf.loc[l], p_pos.loc[t].xs(k, level=1))    # sum_i (- PTDF(l,i) * (p_pos(i,k, t))
-                            )
-                lhs += '\n' + join_exprs(v1.sum())
 
-                # f(l,t) + LODF(l,k) * f(k,t)
-                v = linexpr((1, f.loc[t, l]),             # f(l,t)
-                            (lodf.loc[l,k], f.loc[t,k]))   # LODF(l,k) * f(k,t)
+            lhs = ''
+            # sum_i (PTDF(l,i) * (p_neg(i,k, t) - p_pos(i,k, t)))
+            v1 = linexpr((expand_series(ptdf.loc[l], snapshots).T, p_neg.xs(k, level=1, axis=1)),    # sum_i (PTDF(l,i) * (p_neg(i,k, t))
+                        (-1 * expand_series(ptdf.loc[l], snapshots).T, p_pos.xs(k, level=1, axis=1))    # sum_i (- PTDF(l,i) * (p_pos(i,k, t))
+                        )
+            lhs += '\n' + join_exprs(v1.sum(axis=1))
 
-                lhs += '\n' + join_exprs(v)
+            # f(l,t) + LODF(l,k) * f(k,t)
+            v = linexpr((1, f[l]),             # f(l,t)
+                        (lodf.loc[l,k], f[k]))   # LODF(l,k) * f(k,t)
 
-                rhs = F.loc[l]
+            lhs += '\n' + join_exprs(v)
 
-                define_constraints(n, lhs, "<=", rhs, "booster1", "capacity_limit")
+            rhs = F.loc[l]
 
-                define_constraints(n, lhs, ">=", -rhs, "booster2", "capacity_limit2")
+            define_constraints(n, lhs, "<=", rhs, "booster1", "capacity_limit")
+
+            define_constraints(n, lhs, ">=", -rhs, "booster2", "capacity_limit2")
 
 
 
@@ -355,7 +356,7 @@ def netzbooster_lopf(n, snapshots, extra_functionality,
                      skip_objective=False, keep_files=False, solver_dir=None,
                      solver_logfile=None,
                      keep_shadowprices=['Bus', 'Line', 'Transformer', 'Link', 'GlobalConstraint'],
-                     store_basis=False, warmstart=False):
+                     store_basis=False, warmstart=False, solver_options=None):
 
     # prepare network
     snapshots = _as_snapshots(n, snapshots)
@@ -440,7 +441,8 @@ solver_name = "gurobi" #solver_options.pop("name")
 snapshots = n.snapshots[:2]
 
 # run lopf with netzbooster constraints and modified objective
-n = netzbooster_lopf(n, snapshots, extra_functionality)
+n = netzbooster_lopf(n, snapshots, extra_functionality,
+                     solver_options=solver_options)
 
 # Netzbooster capacity P_pos (pandas Series, index = Buses)
 P_pos = n.sols.Bus.df["P_pos"]
