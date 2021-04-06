@@ -21,6 +21,7 @@ if 'snakemake' not in globals():
     import yaml
     snakemake = Dict()
 #     snakemake.input = ["../networks/prenetwork4_sn100.nc"]
+#    you can find it here ("mnt/amin/git_projects/PyPSA/examples/ac-dc-meshed/3-bus/")
     csv_folder_name = ("../../git_projects/PyPSA/examples/ac-dc-meshed/3-bus/")
     snakemake.input = csv_folder_name
     snakemake.output = ["networks/c2/post_3bus.nc"]
