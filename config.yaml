@@ -1,25 +1,20 @@
-network: "networks/elec_s_50_ec_lv1.0_Co2L0.1-1H.nc"
+network: "networks/prenetwork2_sn20.nc"
 
-load_shedding: true
-rolling_horizon: true
-snapshots: 100
 
-co2_price:
+snapshots: 20
+
+flex_cost:
   start: 100
-  stop: 120
-  step: 10
+  stop: 18100
+  step: 6000
 
-co2_factor:
-  start: 1
-  stop: 8
-  step: 1
 
 solver:
   name: gurobi
   threads: 4
   method: 2
   crossover: 0
-  BarConvTol: 1.e-4
+  BarConvTol: 1.e-3
   FeasibilityTol: 1.e-4
   AggFill: 0
   PreDual: 0
