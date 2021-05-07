@@ -17,7 +17,7 @@ import yaml
 
 
 # import network
-# n = pypsa.Network("../notebooks/networks/prenetwork4_sn50.nc")
+# n = pypsa.Network("../notebooks/networks/prenetwork2_sn20.nc")
 n = pypsa.Network(snakemake.input.network)
 
 n.lines.s_max_pu = 1
@@ -28,7 +28,7 @@ n.lines.s_max_pu = 1
 #                      index_col=['component', 'variable'])
 lookup = pd.read_csv(snakemake.input.variable,
                      index_col=['component', 'variable'])
-
+#%%
 # functions ------------------------------------------------------------------
 def assign_solution_netzbooster(n, sns, variables_sol, constraints_dual,
                     keep_references=False, keep_shadowprices=None):
@@ -210,7 +210,7 @@ def add_to_objective(n, snapshots):
     outages = [l for l in lines if "outage" in l]
 
     coefficient1 = float(snakemake.wildcards.flex_cost) #18000
-    coefficient2 = 1 #float(snakemake.wildcards.flex_cost)*0.001 #1 
+    coefficient2 = 1 #float(snakemake.wildcards.flex_cost)*0.001 #1
 
     #  (a) costs for Netzbooster capacities
     # sum_i ( c_pos * P(i)_pos + c_neg * P(i)_neg)
@@ -224,7 +224,7 @@ def add_to_objective(n, snapshots):
 
     # (b) costs for compensation dispatch (paid to DSM consumers/running costs for storage)
     # sum_(i, t, k) ( o_pos * p(i, t, k)_pos + o_neg * p(i, t, k)_pos)
-    
+
     compensate_p_cost = linexpr(
                                 (coefficient2, get_var(n, "Bus", "p_pos").loc[snapshots, buses]),
                                 (coefficient2, get_var(n, "Bus", "p_neg").loc[snapshots, buses]),
@@ -245,7 +245,6 @@ def netzbooster_constraints(n, snapshots):
     sub.calculate_PTDF()
     sub.calculate_BODF()
 
-    snapshots = snapshots #n.snapshots
     buses = sub.buses_i()
     lines = sub.lines_i()
     outages = [l for l in lines if "outage" in l]
@@ -291,7 +290,7 @@ def netzbooster_constraints(n, snapshots):
                                      pd.MultiIndex.from_product([buses, outages]), axis=1, level=0)
     lhs_2 = linexpr(
                     (1,  P_neg_extend[buses]),
-                    (-1, get_var(n, "Bus", "p_pos").loc[snapshots, buses])
+                    (-1, get_var(n, "Bus", "p_neg").loc[snapshots, buses])
                    )
 
 
@@ -299,9 +298,9 @@ def netzbooster_constraints(n, snapshots):
 
     # ######## sum(i, p_pos(i,k,t) - p_neg(i,k,t)) = 0  #########
     lhs_3 = linexpr(
-                    (1,  get_var(n, "Bus", "p_pos").loc[snapshots].groupby(level=1, axis=1).sum()),
-                    (-1,  get_var(n, "Bus", "p_neg").loc[snapshots].groupby(level=1, axis=1).sum())
-                   )
+                    (1,  get_var(n, "Bus", "p_pos")),
+                    (-1,  get_var(n, "Bus", "p_neg"))
+                   ).groupby(level=1, axis=1).sum()
     define_constraints(n, lhs_3, "==", 0., "Bus", "FlexBal")
 
     # ## |f(l,t) + LODF(l,k) * f(k,t) + sum_i (PTDF(l,i) * (p_neg(i,k, t) - p_pos(i,k, t)))| <= F(l)  ########
@@ -315,29 +314,38 @@ def netzbooster_constraints(n, snapshots):
     p_pos = get_var(n, "Bus", "p_pos")
     # p neg (index=snapshots, columns=[bus, outage])
     p_neg = get_var(n, "Bus", "p_neg")
+    # expand ptdf with snapshots [index=snapshots, columns=[bus, lines]]
+    ptdf_t = expand_series(ptdf.T.stack(), snapshots).T
 
     for k in outages:
-        for l in lines.difference(pd.Index([k])):   # all l except for outage line
-            for t in snapshots:
+        # all lines except outage linke k
+        l = lines.difference(pd.Index([k]))
+        # get PTDF without outage line k (index=snapshots, columns=[buses, lines])
+        ptdf_no_k = ptdf_t.reindex(l, axis=1, level=1)
+        # expand lodf for linear expression
+        lodf_t = expand_series(lodf.loc[l,k], snapshots).T
+        # expand p_neg with lines (index=snapshots, columns=[buses, lines])
+        p_neg_l = p_neg.xs(k, level=1, axis=1).reindex(ptdf_no_k.columns, axis=1, level=0)
+        # expand p_pos with lines (index=snapshots, columns=[buses, lines])
+        p_pos_l = p_pos.xs(k, level=1, axis=1).reindex(ptdf_no_k.columns, axis=1, level=0)
+        # expand flow on outage line
+        f_k = expand_series(f[k], l)
 
-                lhs = ''
-                # sum_i (PTDF(l,i) * (p_neg(i,k, t) - p_pos(i,k, t)))
-                v1 = linexpr((ptdf.loc[l], p_neg.loc[t].xs(k, level=1)),    # sum_i (PTDF(l,i) * (p_neg(i,k, t))
-                            (-1 * ptdf.loc[l], p_pos.loc[t].xs(k, level=1))    # sum_i (- PTDF(l,i) * (p_pos(i,k, t))
-                            )
-                lhs += '\n' + join_exprs(v1.sum())
+        # sum_i (PTDF(l,i) * (p_neg(i,k, t) - p_pos(i,k, t)))
+        lhs = linexpr((ptdf_no_k, p_pos_l),    # sum_i (PTDF(l,i) * (p_pos(i,k, t))
+                    (-1 * ptdf_no_k,  p_neg_l)    # sum_i (- PTDF(l,i) * (p_neg(i,k, t))
+                    ).groupby(level=1, axis=1).sum()
 
-                # f(l,t) + LODF(l,k) * f(k,t)
-                v = linexpr((1, f.loc[t, l]),             # f(l,t)
-                            (lodf.loc[l,k], f.loc[t,k]))   # LODF(l,k) * f(k,t)
+        # f(l,t) + LODF(l,k) * f(k,t)
+        lhs += linexpr((1, f[l]),             # f(l,t)
+                       (lodf_t, f_k))   # LODF(l,k) * f(k,t)
 
-                lhs += '\n' + join_exprs(v)
 
-                rhs = F.loc[l]
+        rhs = expand_series(F.loc[l], snapshots).T
 
-                define_constraints(n, lhs, "<=", rhs, "booster1", "capacity_limit")
+        define_constraints(n, lhs, "<=", rhs, "booster1", "capacity_limit_lb_{}".format(k))
 
-                define_constraints(n, lhs, ">=", -rhs, "booster2", "capacity_limit2")
+        define_constraints(n, lhs, ">=", -rhs, "booster2", "capacity_limit_ub_{}".format(k))
 
 
 
@@ -384,8 +392,6 @@ def netzbooster_lopf(n, snapshots, extra_functionality,
 
     # save objective value in network
     n.objective = obj
-    # TODO assign the other solutions to the network
-    # attention: not finished!
     assign_solution_netzbooster(n, snapshots, variables_sol, constraints_dual,
                     keep_references=keep_references,
                     keep_shadowprices=keep_shadowprices)
@@ -402,7 +408,7 @@ def save_results_as_csv(n, snapshots):
     P_neg = n.sols.Bus.df["P_neg"]
 #     pd.concat([P_pos, P_neg],axis=1).to_csv("results/P_netzbooster_capacity.csv")
     pd.concat([P_pos, P_neg],axis=1).to_csv(snakemake.output.P)
-    
+
     # Netzbooster shadow price p_pos (only defined for considered snapshots, others are NaN values)
     # Dataframe(index=snapshots, columns=[Bus, outage])
     p_pos = n.sols.Bus.pnl["p_pos"].loc[snapshots]
@@ -427,21 +433,18 @@ def save_results_as_csv(n, snapshots):
 
 #%%
 
-
-
-# solver_options = {"threads": 4, "method": 2,
-#                    "crossover": 0, "BarConvTol": 1.e-4,
-#                    "FeasibilityTol": 1.e-5, "AggFill": 0,
-#                    "PreDual": 0, "GURO_PAR_BARDENSETHRESH": 200}
+# import yaml
+# with open('../config.yaml', encoding='utf8') as f:
+#     snakemake.config = yaml.safe_load(f)
 
 solver_options = snakemake.config["solver"]
 
-# solver_name = "gurobi" 
+# solver_name = "gurobi"
 solver_name = solver_options.pop("name")
 
 
 # for testing only consider 2 snapshots
-snapshots = n.snapshots#[:2]
+snapshots = n.snapshots #[:15]
 
 # run lopf with netzbooster constraints and modified objective
 n = netzbooster_lopf(n, snapshots, extra_functionality)
@@ -458,3 +461,65 @@ save_results_as_csv(n, snapshots)
 
 # n.export_to_netcdf("networks/postnetwork4_sn50.nc")
 n.export_to_netcdf(snakemake.output.network)
+#%% check constraints
+
+#(1) P_pos >= 0
+if not all(P_pos>=0):
+    print("Warning not all capital P_pos>=0")
+#(2) P_neg >= 0
+if not all(P_neg>=0):
+    print("Warning not all capital P_neg>=0")
+#(3) 0<=p_pos<=P_pos
+if not all((p_pos>=0) & (p_pos <= expand_series(P_pos.reindex(p_pos.columns, level=0),snapshots).T)):
+    print("Warning not all small p_pos in 0<=p_pos<=P_pos")
+#(4) 0<=p_neg<= P_neg
+if not all((p_neg>=0) & (p_neg <= expand_series(P_neg.reindex(p_neg.columns, level=0),snapshots).T)):
+    print("Warning not all small p_neg in 0<=p_neg<=P_neg")
+
+#(5) sum_i (p_pos(i,t,k) - p_neg(i,t,k)) = 0
+if not all(round((p_pos-p_neg).groupby(level=1, axis=1).sum(), ndigits=6)==0):
+    print("constraint sum_i (p_pos(i,t,k) - p_neg(i,t,k)) = 0 is violated")
+
+#(6) |f(l,t) + LODF(l,k) * f(k,t) + sum_i (PTDF(l,i) * (p_neg(i,k, t) - p_pos(i,k, t)))| <= F(l)
+F = n.lines.s_nom
+f = n.lines_t.p0
+n.determine_network_topology()
+sub = n.sub_networks.at["0", "obj"]
+sub.calculate_PTDF()
+sub.calculate_BODF()
+
+buses = sub.buses_i()
+lines = sub.lines_i()
+outages = [l for l in lines if "outage" in l]
+
+ptdf = pd.DataFrame(sub.PTDF, index=lines, columns=buses)
+lodf = pd.DataFrame(sub.BODF, index=lines, columns=lines)
+
+ptdf_t = expand_series(ptdf.T.stack(), snapshots).T
+
+for k in outages:
+
+    # get values for outage k ----------------------------------------------
+    # all lines except outage linke k
+    l = lines.difference(pd.Index([k]))
+    # get PTDF without outage line k (index=snapshots, columns=[buses, lines])
+    ptdf_no_k = ptdf_t.reindex(l, axis=1, level=1)
+    # expand lodf for linear expression
+    lodf_t = expand_series(lodf.loc[l,k], snapshots).T
+    # expand p_neg with lines (index=snapshots, columns=[buses, lines])
+    p_neg_l = p_neg.xs(k, level=1, axis=1).reindex(ptdf_no_k.columns, axis=1, level=0)
+    # expand p_pos with lines (index=snapshots, columns=[buses, lines])
+    p_pos_l = p_pos.xs(k, level=1, axis=1).reindex(ptdf_no_k.columns, axis=1, level=0)
+    # expand flow on outage line
+    f_k = expand_series(f[k], l)
+
+    # terms of the final constraint ----------------------------------------
+    # first term f(l,t) + LODF(l,k) * f(k,t)
+    term1 = f.loc[snapshots, l] + lodf_t*f_k.loc[snapshots]
+    # second term sumation over buses
+    # sum_i (PTDF(l,i) * (p_neg(i,k, t) - p_pos(i,k, t)))
+    term2 = (ptdf_no_k * (p_pos_l-p_neg_l)).groupby(level=1, axis=1).sum()
+
+    if not all(abs(term1 + term2) <= expand_series(F.loc[l], snapshots).T):
+        print("Warning constraint |f(l,t) + LODF(l,k) * f(k,t) + sum_i (PTDF(l,i) * (p_neg(i,k, t) - p_pos(i,k, t)))| <= F(l) "
+              "is violated for outage {}".format(k))
