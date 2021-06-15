@@ -76,7 +76,7 @@ def prepare_model():
           for k in outages for t in snapshots}
     l_constraint(m, "FlexBal", c3, outages, snapshots)
 
-    ######## sum(i, PTDF(l,i) * (p_neg(i,k) - p_pos(i,k)) <= F(l) + f(l) + LODF(l,k) * f(k) ########
+    ######## sum(i, (PTDF(l,i) +LODF(l,k)*PTDF(k,i))* (p_neg(i,k) - p_pos(i,k)) <= F(l) + f(l) + LODF(l,k) * f(k) ########
     c4 = {(l, k, t):
           [[*[(-ptdf.at[l, i]- lodf.at[l,k]*ptdf.at[k,i], m.p_pos[i, k, t]) for i in buses],
             *[(ptdf.at[l, i] + lodf.at[l,k]*ptdf.at[k,i], m.p_neg[i, k, t]) for i in buses
@@ -86,7 +86,7 @@ def prepare_model():
 
     l_constraint(m, "LineDn", c4, lines, outages, snapshots)
 
-    # sum(i, PTDF(l,i) * (p_pos(i,k) - p_neg(i,k)) <= F(l) - f(l) - LODF(l,k) * f(k)
+    # sum(i, (PTDF(l,i) +LODF(l,k)*PTDF(k,i))*p_pos(i,k) - p_neg(i,k)) <= F(l) - f(l) - LODF(l,k) * f(k)
     c5 = {(l, k, t): 
           [[*[(ptdf.at[l, i] + lodf.at[l,k]*ptdf.at[k,i], m.p_pos[i, k, t]) for i in buses],
             *[(-ptdf.at[l, i] - lodf.at[l,k]*ptdf.at[k,i], m.p_neg[i, k, t]) for i in buses
