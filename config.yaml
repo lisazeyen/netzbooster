@@ -1,5 +1,10 @@
 network: "networks/prenetwork2_sn20.nc"
 
+tatl_factor:
+  start: 1
+  stop: 2
+  step: 0.1
+
 
 snapshots: 20
 
