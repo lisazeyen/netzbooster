@@ -303,8 +303,8 @@ def netzbooster_constraints(n, snapshots):
                    ).groupby(level=1, axis=1).sum()
     define_constraints(n, lhs_3, "==", 0., "Bus", "FlexBal")
 
-    # ## |f(l,t) + LODF(l,k) * f(k,t) + sum_i (PTDF(l,i) * (p_neg(i,k, t) - p_pos(i,k, t)))| <= F(l)  ########
-    # f(l,t) + LODF(l,k) * f(k,t) + sum_i (PTDF(l,i) * (p_neg(i,k, t) - p_pos(i,k, t))) <= F(l)
+    # ## |f(l,t) + LODF(l,k) * f(k,t) + sum_i ((PTDF(l,i) +  LODF(l,k) * PTDF(k,i)) * (p_neg(i,k, t) - p_pos(i,k, t)))| <= F(l)  ########
+    # f(l,t) + LODF(l,k) * f(k,t) + sum_i ((PTDF(l,i) +  LODF(l,k) * PTDF(k,i))* (p_neg(i,k, t) - p_pos(i,k, t))) <= F(l)
 
     # f(l,t) here: f pandas DataFrame(index=snapshots, columns=lines)
     f = get_var(n,"Line", "s")
@@ -314,26 +314,29 @@ def netzbooster_constraints(n, snapshots):
     p_pos = get_var(n, "Bus", "p_pos")
     # p neg (index=snapshots, columns=[bus, outage])
     p_neg = get_var(n, "Bus", "p_neg")
-    # expand ptdf with snapshots [index=snapshots, columns=[bus, lines]]
-    ptdf_t = expand_series(ptdf.T.stack(), snapshots).T
+
 
     for k in outages:
+        # a = (PTDF(l,i) +  LODF(l,k) * PTDF(k,i))
+        a = ptdf + expand_series(lodf[k], buses).mul(ptdf.loc[k])
+        # expand a with snapshots [index=snapshots, columns=[bus, lines]]
+        a_t = expand_series(a.T.stack(), snapshots).T
         # all lines except outage linke k
         l = lines.difference(pd.Index([k]))
         # get PTDF without outage line k (index=snapshots, columns=[buses, lines])
-        ptdf_no_k = ptdf_t.reindex(l, axis=1, level=1)
+        a_no_k = a_t.reindex(l, axis=1, level=1)
         # expand lodf for linear expression
         lodf_t = expand_series(lodf.loc[l,k], snapshots).T
         # expand p_neg with lines (index=snapshots, columns=[buses, lines])
-        p_neg_l = p_neg.xs(k, level=1, axis=1).reindex(ptdf_no_k.columns, axis=1, level=0)
+        p_neg_l = p_neg.xs(k, level=1, axis=1).reindex(a_no_k.columns, axis=1, level=0)
         # expand p_pos with lines (index=snapshots, columns=[buses, lines])
-        p_pos_l = p_pos.xs(k, level=1, axis=1).reindex(ptdf_no_k.columns, axis=1, level=0)
+        p_pos_l = p_pos.xs(k, level=1, axis=1).reindex(a_no_k.columns, axis=1, level=0)
         # expand flow on outage line
         f_k = expand_series(f[k], l)
 
-        # sum_i (PTDF(l,i) * (p_neg(i,k, t) - p_pos(i,k, t)))
-        lhs = linexpr((ptdf_no_k, p_pos_l),    # sum_i (PTDF(l,i) * (p_pos(i,k, t))
-                    (-1 * ptdf_no_k,  p_neg_l)    # sum_i (- PTDF(l,i) * (p_neg(i,k, t))
+        # sum_i (a * (p_pos(i,k, t) - p_neg(i,k, t)))
+        lhs = linexpr((a_no_k, p_pos_l),    # sum_i (a(l,i) * (p_pos(i,k, t))
+                    (-1 * a_no_k,  p_neg_l)    # sum_i (-a(l,i) * (p_neg(i,k, t))
                     ).groupby(level=1, axis=1).sum()
 
         # f(l,t) + LODF(l,k) * f(k,t)
@@ -480,7 +483,7 @@ if not all((p_neg>=0) & (p_neg <= expand_series(P_neg.reindex(p_neg.columns, lev
 if not all(round((p_pos-p_neg).groupby(level=1, axis=1).sum(), ndigits=6)==0):
     print("constraint sum_i (p_pos(i,t,k) - p_neg(i,t,k)) = 0 is violated")
 
-#(6) |f(l,t) + LODF(l,k) * f(k,t) + sum_i (PTDF(l,i) * (p_neg(i,k, t) - p_pos(i,k, t)))| <= F(l)
+#(6) |f(l,t) + LODF(l,k) * f(k,t) + sum_i ((PTDF(l,i) +  LODF(l,k) * PTDF(k,i)) * (p_neg(i,k, t) - p_pos(i,k, t)))| <= F(l)  ########
 F = n.lines.s_nom
 f = n.lines_t.p0
 n.determine_network_topology()
@@ -502,14 +505,20 @@ for k in outages:
     # get values for outage k ----------------------------------------------
     # all lines except outage linke k
     l = lines.difference(pd.Index([k]))
+    # a = (PTDF(l,i) +  LODF(l,k) * PTDF(k,i))
+    a = ptdf + expand_series(lodf[k], buses).mul(ptdf.loc[k])
+    # expand a with snapshots [index=snapshots, columns=[bus, lines]]
+    a_t = expand_series(a.T.stack(), snapshots).T
+    # all lines except outage linke k
+    l = lines.difference(pd.Index([k]))
     # get PTDF without outage line k (index=snapshots, columns=[buses, lines])
-    ptdf_no_k = ptdf_t.reindex(l, axis=1, level=1)
+    a_no_k = a_t.reindex(l, axis=1, level=1)
     # expand lodf for linear expression
     lodf_t = expand_series(lodf.loc[l,k], snapshots).T
     # expand p_neg with lines (index=snapshots, columns=[buses, lines])
-    p_neg_l = p_neg.xs(k, level=1, axis=1).reindex(ptdf_no_k.columns, axis=1, level=0)
+    p_neg_l = p_neg.xs(k, level=1, axis=1).reindex(a_no_k.columns, axis=1, level=0)
     # expand p_pos with lines (index=snapshots, columns=[buses, lines])
-    p_pos_l = p_pos.xs(k, level=1, axis=1).reindex(ptdf_no_k.columns, axis=1, level=0)
+    p_pos_l = p_pos.xs(k, level=1, axis=1).reindex(a_no_k.columns, axis=1, level=0)
     # expand flow on outage line
     f_k = expand_series(f[k], l)
 
@@ -517,8 +526,8 @@ for k in outages:
     # first term f(l,t) + LODF(l,k) * f(k,t)
     term1 = f.loc[snapshots, l] + lodf_t*f_k.loc[snapshots]
     # second term sumation over buses
-    # sum_i (PTDF(l,i) * (p_neg(i,k, t) - p_pos(i,k, t)))
-    term2 = (ptdf_no_k * (p_pos_l-p_neg_l)).groupby(level=1, axis=1).sum()
+    # sum_i (a (l,i) * (p_neg(i,k, t) - p_pos(i,k, t)))
+    term2 = (a_no_k * (p_pos_l-p_neg_l)).groupby(level=1, axis=1).sum()
 
     if not all(abs(term1 + term2) <= expand_series(F.loc[l], snapshots).T):
         print("Warning constraint |f(l,t) + LODF(l,k) * f(k,t) + sum_i (PTDF(l,i) * (p_neg(i,k, t) - p_pos(i,k, t)))| <= F(l) "
