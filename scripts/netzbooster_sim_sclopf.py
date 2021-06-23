@@ -358,7 +358,7 @@ def netzbooster_constraints(n, snapshots):
 
 
 
-def extra_functionality(n,snapshots, tatl):
+def extra_functionality(n,snapshots):
 
     netzbooster_constraints(n, snapshots)
 
@@ -475,7 +475,7 @@ tatl = float(snakemake.wildcards.tatl_factor)
 
 # run lopf with netzbooster constraints and modified objective
 n = netzbooster_sclopf(n, snapshots, extra_functionality,
-                       branch_outages=branch_outages)
+                       branch_outages=branch_outages, tatl=tatl)
 
 # Netzbooster capacity P_pos (pandas Series, index = Buses)
 P_pos = n.sols.Bus.df["P_pos"]
