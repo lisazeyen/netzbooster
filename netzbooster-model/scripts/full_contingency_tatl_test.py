@@ -27,17 +27,6 @@ from contingency_tatl import network_sclopf_tatl
 
 
 n = pypsa.Network(snakemake.input[0])
-# n = pypsa.Network("../networks/new_inv_co2impact_sn20/prenetwork1_sn20.nc")
-
-# n.madd("Line",
-#        names=["northsea"],
-#        bus0=["DE0 11"],
-#        bus1=["DE0 15"],
-#        length=[150],
-#        type=['Al/St 240/40 4-bundle 380.0'],
-#        carrier=['AC'],
-#        capital_cost = [14.],
-#        s_nom=[2043])
 
 # n.calculate_dependent_values()
 

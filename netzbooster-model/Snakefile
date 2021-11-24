@@ -2,8 +2,10 @@ import numpy as np
 
 configfile: "config.yaml"
 
-
-
+rule preprocess_network:
+    input: config["network"]
+    output: "networks/prenetwork_{Co2L}_{snapshots}.nc"
+    script: "scripts/preprocess_network.py"
     
 rule solve_full_contingency:
     input: "networks/new_inv_co2impact_sn20/prenetwork8_sn20.nc"

@@ -7,16 +7,31 @@ import pypsa
 import pandas as pd
 import numpy as np
 
-def prepare_network(n):
+def add_NW_line():
+    n.madd("Line",
+           names=["NW"],
+           num_parallel=2.67036,
+           bus0=["DE0 11"],
+           bus1=["DE0 15"],
+           length=[147.677127],
+           type=['Al/St 240/40 4-bundle 380.0'],
+           carrier=['AC'],
+           capital_cost = [15.35691],
+           s_nom=[4534.545478]
+    ) #same capacity/num_parallel as line "12", cost+length those of line "12" multiplied by 2
+
+def prepare_network(n, Co2L_factor=1.):
     """
     Several preprocessing steps including load shedding and
     fixing optimised capacities.
     """
 
     n.lines.s_max_pu = 1.0
+
+    # factor 10 because inital network is given with Co2L = 0.1.
+    print(f"Setting a global Co2 emission target of {100*Co2L_factor} %")
+    n.global_constraints.at["CO2Limit", "constant"] *= (10*Co2L_factor)
     
-    
-    n.global_constraints.constant= n.global_constraints.constant*float(snakemake.wildcards.co2_factor)
 #     n.generators.loc[n.generators.carrier=='OCGT','p_nom_extendable'] = True
 #     n.storage_units.p_nom_extendable = True
 #     n.links.p_nom_extendable = True
@@ -34,7 +49,6 @@ def prepare_network(n):
 #     co2_costs=n.generators.carrier.map(n.carriers.co2_emissions)*co2_pr/n.generators.efficiency
     
 #     n.generators.marginal_cost += co2_costs
-    
     
 
     if snakemake.config["load_shedding"] and "load" not in n.carriers.index:
@@ -117,7 +131,10 @@ def get_representative_snapshots(n, n_snapshots):
     
     clustered_ind = raw.iloc[agg.clusterCenterIndices].index
     n.set_snapshots(clustered_ind)
-    n.snapshot_weightings[:] = list(agg._clusterPeriodNoOccur.values())
+    # this can be done nicer, probably, but does the job (for now):
+    n.snapshot_weightings.objective = list(agg._clusterPeriodNoOccur.values())
+    n.snapshot_weightings.stores = list(agg._clusterPeriodNoOccur.values())
+    n.snapshot_weightings.generators = list(agg._clusterPeriodNoOccur.values())
 
     return n
 
@@ -148,21 +165,24 @@ if __name__ == "__main__":
 
     n = pypsa.Network(snakemake.input[0])
 
-    n = prepare_network(n)
+    add_NW_line()
+
+    n = prepare_network(n, Co2L_factor = float(snakemake.wildcards["Co2L"].split('L')[1]))
 
 #    n = apply_hacks(n)
 
     n = split_outage_lines(n)
-    
-    n.lines = n.lines.loc[n.lines.num_parallel!=0]
+
+    to_remove = n.lines.loc[n.lines.num_parallel==0].index
+    print("Removing following lines with num_parallel = 0:",to_remove)
+    n.mremove("Line", to_remove)
     
     n.mremove("StorageUnit", n.storage_units.index) 
     
     n.determine_network_topology()
-    
-    N_SNAPSHOTS = snakemake.config["snapshots"]
 
-    n= get_representative_snapshots(n, N_SNAPSHOTS)
+    N_SNAPSHOTS = int(snakemake.wildcards["snapshots"].split('n')[1])
+    n = get_representative_snapshots(n, N_SNAPSHOTS)
 
 
     n.export_to_netcdf(snakemake.output[0])
