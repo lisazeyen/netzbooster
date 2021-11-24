@@ -1,0 +1,15 @@
+*.nc
+.ipynb_checkpoints/*
+*/.ipynb_checkpoints/*
+*/*/.ipynb_checkpoints/*
+.snakemake/*
+*.png
+__pycache__/*
+*.log
+*.pdf
+old/*
+netzbooster-model/scripts/.ipynb_checkpoints/*
+netzbooster-model/scripts/old model without tatl/*
+sim-netzbooster-model/data/.ipynb_checkpoints/*
+netzbooster-model/scripts/__pycache__/*
+*.pyc

@@ -1,17 +1,22 @@
-network: "networks/prenetwork2_sn20.nc"
+network: "networks/prenetwork1_sn20.nc"
+
+
+snapshots: 20 
+
 
 tatl_factor:
-  start: 1
-  stop: 2
-  step: 0.1
+  start: 1.8
+  stop: 2.0
+  step: 0.2
+  
+  
 
-
-snapshots: 20
+# flex_cost: 18100 
 
 flex_cost:
-  start: 100
-  stop: 18100
-  step: 6000
+  start: 0 
+  stop: 23000
+  step: 23000 #6000
 
 
 solver:

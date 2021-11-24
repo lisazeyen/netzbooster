@@ -1,0 +1,54 @@
+<<<<<<< HEAD:config.yaml
+network: "networks/prenetwork2_sn20.nc"
+
+tatl_factor:
+  start: 1
+  stop: 2
+  step: 0.1
+
+=======
+network: "networks/elec_s_50_ec_lv1.0_Co2L0.1-1H.nc"  #3_bus.nc
+
+load_shedding: true
+rolling_horizon: true
+snapshots: 20  
+
+
+tatl_factor:
+  start: 1
+  stop: 2
+  step: 0.1
+
+>>>>>>> ab3a208 (update git repository):netzbooster-model/config.yaml
+
+snapshots: 20
+
+flex_cost:
+  start: 100
+  stop: 18100
+  step: 6000
+
+<<<<<<< HEAD:config.yaml
+=======
+co2_factor:
+  start: 1
+  stop: 2
+  step: 1
+>>>>>>> ab3a208 (update git repository):netzbooster-model/config.yaml
+
+solver:
+  name: gurobi
+  threads: 4
+  method: 2
+  crossover: 0
+<<<<<<< HEAD:config.yaml
+  BarConvTol: 1.e-3
+  FeasibilityTol: 1.e-4
+=======
+  BarConvTol: 1.e-4
+  FeasibilityTol: 1.e-5
+>>>>>>> ab3a208 (update git repository):netzbooster-model/config.yaml
+  AggFill: 0
+  PreDual: 0
+  GURO_PAR_BARDENSETHRESH: 200
+  BarHomogeneous: 1

@@ -86,7 +86,11 @@ def prepare_model():
 
     l_constraint(m, "LineDn", c4, lines, outages, snapshots)
 
+<<<<<<< HEAD:scripts/netzbooster_seq.py
     # sum(i, (PTDF(l,i) +LODF(l,k)*PTDF(k,i))*p_pos(i,k) - p_neg(i,k)) <= F(l) - f(l) - LODF(l,k) * f(k)
+=======
+    # sum(i, PTDF(l,i) * (p_pos(i,k) - p_neg(i,k)) <= F(l) - f(l) - LODF(l,k) * f(k)
+>>>>>>> ab3a208 (update git repository):netzbooster-model/scripts/netzbooster_seq.py
     c5 = {(l, k, t): 
           [[*[(ptdf.at[l, i] + lodf.at[l,k]*ptdf.at[k,i], m.p_pos[i, k, t]) for i in buses],
             *[(-ptdf.at[l, i] - lodf.at[l,k]*ptdf.at[k,i], m.p_neg[i, k, t]) for i in buses
@@ -99,8 +103,13 @@ def prepare_model():
 
     objective = LExpression()
 
+<<<<<<< HEAD:scripts/netzbooster_seq.py
     coefficient1 = 181000
     coefficient2 = 1000
+=======
+    coefficient1 = 18100
+    coefficient2 = 100
+>>>>>>> ab3a208 (update git repository):netzbooster-model/scripts/netzbooster_seq.py
 
     objective.variables.extend([(coefficient1, m.P_pos[i]) for i in buses])
     objective.variables.extend([(coefficient1, m.P_neg[i]) for i in buses])

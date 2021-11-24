@@ -1,0 +1,36 @@
+import numpy as np
+
+configfile: "config.yaml"
+
+
+
+    
+rule solve_full_contingency:
+    input: "networks/new_inv_co2impact_sn20/prenetwork8_sn20.nc"
+    output: "results/new/postnetwork_full8_{tatl_factor}_sn20.nc"
+    threads: 4
+    resources: mem= 5000#50000
+    script: "scripts/full_contingency_tatl_test.py"
+
+
+    
+rule solve_netzbooster:
+    input: "results/new/postnetwork_full8_{tatl_factor}_sn20.nc"
+    output:
+        P= "results/new/P_netzbooster{tatl_factor}.csv",
+        pos= "results/new/p_pos{tatl_factor}.csv",
+        neg= "results/new/p_neg{tatl_factor}.csv"    
+    threads: 4
+    resources: mem= 50000 #50000
+    script: "scripts/netzbooster_seq.py"
+
+def tatl_pus():
+    cf = config["tatl_factor"]
+    return np.round(np.arange(cf["start"], cf["stop"] + cf["step"], cf["step"]),2)
+
+rule all:
+    input:
+      booster=expand("results/new/P_netzbooster{tatl_factor}.csv", tatl_factor=tatl_pus()),
+      booster_pos=expand("results/new/p_pos{tatl_factor}.csv", tatl_factor=tatl_pus()),
+      booster_neg=expand("results/new/p_neg{tatl_factor}.csv", tatl_factor=tatl_pus()),
+      full=expand("results/new/postnetwork_full8_{tatl_factor}_sn20.nc", tatl_factor=tatl_pus())
