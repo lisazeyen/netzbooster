@@ -21,10 +21,13 @@ rule solve_full_contingency:
 rule solve_netzbooster:
     input: "results/postnetwork_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.nc"
     output:
-        P = "results/P_netzbooster_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.csv",
+        P   = "results/P_netzbooster_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.csv",
         pos = "results/p_pos_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.csv",
         neg = "results/p_neg_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.csv"
     threads: 4
+    log:
+        mem    = "log/seq_memory_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.log",
+        gurobi = "log/seq_gurobi_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.log"
     resources: mem= 50000 #50000
     script: "scripts/netzbooster_seq.py"
 
@@ -41,11 +44,11 @@ def co2_pus():
 
 rule all:
     input:
-        booster = expand("results/P_netzbooster_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.csv",
-                         Co2factor=co2_pus(), n_snapshots=config["n_snapshots"], tatlfactor=tatl_pus()),
+        booster     = expand("results/P_netzbooster_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.csv",
+                             Co2factor=co2_pus(), n_snapshots=config["n_snapshots"], tatlfactor=tatl_pus()),
         booster_pos = expand("results/p_pos_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.csv",
 		                     Co2factor=co2_pus(), n_snapshots=config["n_snapshots"], tatlfactor=tatl_pus()),
         booster_neg = expand("results/p_neg_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.csv",
 		                     Co2factor=co2_pus(), n_snapshots=config["n_snapshots"], tatlfactor=tatl_pus()),
-        full = expand("results/postnetwork_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.nc",
-		              Co2factor=co2_pus(), n_snapshots=config["n_snapshots"], tatlfactor=tatl_pus())
+        full        = expand("results/postnetwork_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.nc",
+		                     Co2factor=co2_pus(), n_snapshots=config["n_snapshots"], tatlfactor=tatl_pus())

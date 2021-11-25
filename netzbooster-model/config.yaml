@@ -3,16 +3,16 @@ network: "networks/elec_s_50_ec_lv1.0_Co2L0.1-1H.nc"  #3_bus.nc
 
 load_shedding: true
 
-n_snapshots: 2
+n_snapshots: 30
 
 co2_factor:
   start: 0.0
-  stop: 0.0
+  stop: 1.0
   step: 0.1
 
 tatl_factor:
   start: 1.
-  stop: 1.
+  stop: 2.
   step: 0.1
 
 solver:

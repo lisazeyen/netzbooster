@@ -143,20 +143,15 @@ def pyomo_postprocess(options=None, instance=None, results=None):
 
 if __name__ == '__main__':
 
-    suffix = "seq_tatl"
-
-    memory_log_filename = f"memory-{suffix}.log"
-    gurobi_log_filename = f"gurobi-{suffix}.log"
+    memory_log_filename = snakemake.log.mem
+    gurobi_log_filename = snakemake.log.gurobi
 
     with memory_logger(filename=memory_log_filename, interval=1.) as mem:
 
         m = prepare_model()
 
         # This emulates what the pyomo command-line tools does
-        options = {"threads": 4, "method": 2,
-                   "crossover": 0, "BarConvTol": 1.e-4,
-                   "FeasibilityTol": 1.e-5, "AggFill": 0,
-                   "PreDual": 0, "GURO_PAR_BARDENSETHRESH": 200}
+        options = snakemake.config['solver']
         opt = SolverFactory('gurobi', options=options)
 
         logger.info("start solving")
