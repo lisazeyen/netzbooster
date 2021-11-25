@@ -15,6 +15,8 @@ import gc
 from vresutils import Dict
 import yaml
 
+import sys
+sys.path.append('../netzbooster-model/scripts/')
 from contingency_tatl import add_contingency_constraints_lowmem
 
 # import network
@@ -143,7 +145,7 @@ def assign_solution_netzbooster(n, sns, variables_sol, constraints_dual,
         map_dual(c, attr)
 
     #correct prices for snapshot weightings
-    n.buses_t.marginal_price.loc[sns] = n.buses_t.marginal_price.loc[sns].divide(n.snapshot_weightings.loc[sns],axis=0)
+    n.buses_t.marginal_price.loc[sns] = n.buses_t.marginal_price.loc[sns].divide(n.snapshot_weightings.objective.loc[sns],axis=0)
 
     # discard remaining if wanted
     if not keep_references:
@@ -463,7 +465,7 @@ snapshots = n.snapshots #[:15]
 
 # branch outages
 branch_outages=get_branch_outages(n)
-tatl = float(snakemake.wildcards.tatl_factor)
+tatl = float(snakemake.wildcards.tatlfactor)
 
 # run lopf with netzbooster constraints and modified objective
 n = netzbooster_sclopf(n, snapshots, extra_functionality,
