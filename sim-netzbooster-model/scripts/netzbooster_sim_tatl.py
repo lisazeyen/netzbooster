@@ -12,56 +12,16 @@ import logging
 logger = logging.getLogger(__name__)
 from tempfile import mkstemp
 import gc
-<<<<<<< HEAD:netzbooster_sim_3bus.py
-import cartopy.crs as ccrs
-
-# for testing
-if 'snakemake' not in globals():
-#     os.chdir("/home/ws/bw0928/Dokumente/netzbooster")
-    from vresutils import Dict
-    import yaml
-    snakemake = Dict()
-#     snakemake.input = ["../networks/prenetwork4_sn100.nc"]
-#    you can find it here ("mnt/amin/git_projects/PyPSA/examples/ac-dc-meshed/3-bus/")
-    csv_folder_name = ("../../git_projects/PyPSA/examples/ac-dc-meshed/3-bus/")
-    snakemake.input = csv_folder_name
-    snakemake.output = ["networks/c2/post_3bus.nc"]
-    with open('config.yaml', encoding='utf8') as f:
-        snakemake.config = yaml.safe_load(f)
-=======
 from vresutils import Dict
 import yaml
 
 from contingency_tatl import add_contingency_constraints_lowmem
->>>>>>> ab3a208 (update git repository):sim-netzbooster-model/scripts/netzbooster_sim_tatl.py
 
 # import network
-# n = pypsa.Network("../notebooks/networks/prenetwork2_sn20.nc")
 n = pypsa.Network(snakemake.input.network)
-
-
-# n.madd("Line",
-#        names=["northsea"],
-#        bus0=["DE0 11"],
-#        bus1=["DE0 15"],
-#        length=[150],
-#        type=['Al/St 240/40 4-bundle 380.0'],
-#        carrier=['AC'],
-#        capital_cost = [14.],
-#        s_nom=[2043])
-
-# n.calculate_dependent_values()
-
-
 
 n.lines.s_max_pu = 1
 
-
-
-
-
-# lookup = pd.read_csv('../notebooks/variables.csv',
-#                      index_col=['component', 'variable'])
 lookup = pd.read_csv(snakemake.input.variable,
                      index_col=['component', 'variable'])
 #%%
@@ -250,13 +210,8 @@ def add_to_objective(n, snapshots):
     lines = sub.lines_i()
     outages = [l for l in lines if "outage" in l]
 
-<<<<<<< HEAD:netzbooster_sim_3bus.py
-    coefficient1 = 18100
-    coefficient2 = 10
-=======
     coefficient1 = float(snakemake.wildcards.flex_cost) #18000
     coefficient2 = 10 #float(snakemake.wildcards.flex_cost)*0.001 #1
->>>>>>> ab3a208 (update git repository):sim-netzbooster-model/scripts/netzbooster_sim_tatl.py
 
     #  (a) costs for Netzbooster capacities
     # sum_i ( c_pos * P(i)_pos + c_neg * P(i)_neg)
@@ -469,36 +424,22 @@ def save_results_as_csv(n, snapshots):
     P_pos = n.sols.Bus.df["P_pos"]
     # Netzbooster capacity P_neg (pandas Series, index = Buses)
     P_neg = n.sols.Bus.df["P_neg"]
-<<<<<<< HEAD:netzbooster_sim_3bus.py
-    pd.concat([P_pos, P_neg],axis=1).to_csv("results/c2/P_netzbooster_capacity.csv")
-    # Netzbooster shadow price p_pos (only defined for considered snapshots, others are NaN values)
-    # Dataframe(index=snapshots, columns=[Bus, outage])
-    p_pos = n.sols.Bus.pnl["p_pos"].loc[snapshots]
-    p_pos.to_csv("results/c2/p_pos.csv")
-    p_neg = n.sols.Bus.pnl["p_neg"].loc[snapshots]
-    p_neg.to_csv("results/c2/p_neg.csv")
-=======
-#     pd.concat([P_pos, P_neg],axis=1).to_csv("results/P_netzbooster_capacity.csv")
+    # pd.concat([P_pos, P_neg],axis=1).to_csv("results/P_netzbooster_capacity.csv")
     pd.concat([P_pos, P_neg],axis=1).to_csv(snakemake.output.P)
 
     # Netzbooster shadow price p_pos (only defined for considered snapshots, others are NaN values)
     # Dataframe(index=snapshots, columns=[Bus, outage])
     p_pos = n.sols.Bus.pnl["p_pos"].loc[snapshots]
-#     p_pos.to_csv("results/p_pos.csv")
+    # p_pos.to_csv("results/p_pos.csv")
     p_pos.to_csv(snakemake.output.pos)
     p_neg = n.sols.Bus.pnl["p_neg"].loc[snapshots]
-#     p_neg.to_csv("results/p_neg.csv")
+    # p_neg.to_csv("results/p_neg.csv")
     p_neg.to_csv(snakemake.output.neg)
->>>>>>> ab3a208 (update git repository):sim-netzbooster-model/scripts/netzbooster_sim_tatl.py
 
     # save constraints with multiindex as csv and remove from network
     keys_to_remove = []
     for key in n.buses_t.keys():
-<<<<<<< HEAD:netzbooster_sim_3bus.py
-        n.buses_t[key].loc[snapshots].to_csv("results/c2/{}.csv".format(key))
-=======
-#         n.buses_t[key].loc[snapshots].to_csv("results/{}.csv".format(key))
->>>>>>> ab3a208 (update git repository):sim-netzbooster-model/scripts/netzbooster_sim_tatl.py
+        # n.buses_t[key].loc[snapshots].to_csv("results/{}.csv".format(key))
         if isinstance(n.buses_t[key].columns, pd.MultiIndex):
             keys_to_remove.append(key)
 
@@ -508,33 +449,14 @@ def save_results_as_csv(n, snapshots):
 
 
 
-<<<<<<< HEAD:netzbooster_sim_3bus.py
-#%% MAIN
-
-# import network
-
-# csv_folder_name = ("../../git_projects/PyPSA/examples/ac-dc-meshed/3-bus/")
-
-# n = pypsa.Network(csv_folder_name)
-
-n = pypsa.Network(snakemake.input[0])
-=======
-#%%
->>>>>>> ab3a208 (update git repository):sim-netzbooster-model/scripts/netzbooster_sim_tatl.py
-
 # import yaml
 # with open('../config.yaml', encoding='utf8') as f:
 #     snakemake.config = yaml.safe_load(f)
 
 solver_options = snakemake.config["solver"]
 
-<<<<<<< HEAD:netzbooster_sim_3bus.py
-# for testing only consider 50 snapshots
-snapshots = n.snapshots#[:2]
-=======
 # solver_name = "gurobi"
 solver_name = solver_options.pop("name")
-
 
 # for testing only consider 2 snapshots
 snapshots = n.snapshots #[:15]
@@ -542,7 +464,6 @@ snapshots = n.snapshots #[:15]
 # branch outages
 branch_outages=get_branch_outages(n)
 tatl = float(snakemake.wildcards.tatl_factor)
->>>>>>> ab3a208 (update git repository):sim-netzbooster-model/scripts/netzbooster_sim_tatl.py
 
 # run lopf with netzbooster constraints and modified objective
 n = netzbooster_sclopf(n, snapshots, extra_functionality,
