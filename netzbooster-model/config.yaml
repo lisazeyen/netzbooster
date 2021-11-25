@@ -8,11 +8,6 @@ tatl_factor:
   stop: 2
   step: 0.1
 
-flex_cost:
-  start: 100
-  stop: 18100
-  step: 6000
-
 solver:
   name: gurobi
   threads: 4
@@ -24,3 +19,8 @@ solver:
   PreDual: 0
   GURO_PAR_BARDENSETHRESH: 200
   BarHomogeneous: 1
+
+sclopf:
+  pyomo: False
+  solver_name: gurobi
+  formulation: kirchhoff

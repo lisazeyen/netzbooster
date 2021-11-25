@@ -13,3 +13,4 @@ netzbooster-model/scripts/old model without tatl/*
 sim-netzbooster-model/data/.ipynb_checkpoints/*
 netzbooster-model/scripts/__pycache__/*
 *.pyc
+.snakemake/

@@ -167,7 +167,8 @@ if __name__ == "__main__":
 
     add_NW_line()
 
-    n = prepare_network(n, Co2L_factor = float(snakemake.wildcards["Co2L"].split('L')[1]))
+
+    n = prepare_network(n, Co2L_factor = float(snakemake.wildcards["Co2factor"]))
 
 #    n = apply_hacks(n)
 
@@ -181,7 +182,7 @@ if __name__ == "__main__":
     
     n.determine_network_topology()
 
-    N_SNAPSHOTS = int(snakemake.wildcards["snapshots"].split('n')[1])
+    N_SNAPSHOTS = int(snakemake.wildcards["n_snapshots"])
     n = get_representative_snapshots(n, N_SNAPSHOTS)
 
 
