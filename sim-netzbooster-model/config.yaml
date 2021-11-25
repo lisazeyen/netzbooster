@@ -1,23 +1,22 @@
-network: "networks/prenetwork1_sn20.nc"
 
-
-snapshots: 20 
-
+n_snapshots: 20
 
 tatl_factor:
   start: 1.8
   stop: 2.0
   step: 0.2
-  
-  
 
 # flex_cost: 18100 
 
 flex_cost:
-  start: 0 
+  start: 0
   stop: 23000
   step: 23000 #6000
 
+co2:
+  start: 0
+  stop: 1
+  step: 0.1
 
 solver:
   name: gurobi

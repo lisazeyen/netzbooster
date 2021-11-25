@@ -10,6 +10,8 @@ __pycache__/*
 old/*
 netzbooster-model/scripts/.ipynb_checkpoints/*
 netzbooster-model/scripts/old model without tatl/*
+netzbooster-model/results/*
+sim-netzbooster-model/results/*
 sim-netzbooster-model/data/.ipynb_checkpoints/*
 netzbooster-model/scripts/__pycache__/*
 *.pyc
