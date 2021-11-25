@@ -1,6 +1,7 @@
 import numpy as np
 
 configfile: "config.yaml"
+configfile: "../netzbooster-model/config.yaml"
 
 
 rule netzbooster:
@@ -23,7 +24,7 @@ def flex_plus():
 
 
 def co2_plus():
-    cf = config["co2"]
+    cf = config["co2_factor"]
     return np.round(np.arange(cf["start"], cf["stop"] + cf["step"], cf["step"]),2)
 
 
@@ -34,11 +35,11 @@ def tatl_plus():
 
 rule all:
     input:
-        booster_P   = expand("results/new/P_netzbooster_sclopf_Co2L{Co2factor}_sn{n_snapshots}_cost{flex_cost}_tatl{tatlfactor}.csv",
+        booster_P   = expand("results/P_netzbooster_sclopf_Co2L{Co2factor}_sn{n_snapshots}_cost{flex_cost}_tatl{tatlfactor}.csv",
 	                         Co2factor=co2_plus(), n_snapshots=config["n_snapshots"], flex_cost=flex_plus(), tatlfactor=tatl_plus()),
-        booster_pos = expand("results/new/p_pos_sclopf_Co2L{Co2factor}_sn{n_snapshots}_cost{flex_cost}_tatl{tatlfactor}.csv",
+        booster_pos = expand("results/p_pos_sclopf_Co2L{Co2factor}_sn{n_snapshots}_cost{flex_cost}_tatl{tatlfactor}.csv",
                              Co2factor=co2_plus(), n_snapshots=config["n_snapshots"], flex_cost=flex_plus(), tatlfactor=tatl_plus()),
-        booster_neg = expand("results/new/p_neg_sclopf_Co2L{Co2factor}_sn{n_snapshots}_cost{flex_cost}_tatl{tatlfactor}.csv",
+        booster_neg = expand("results/p_neg_sclopf_Co2L{Co2factor}_sn{n_snapshots}_cost{flex_cost}_tatl{tatlfactor}.csv",
                              Co2factor=co2_plus(), n_snapshots=config["n_snapshots"], flex_cost=flex_plus(), tatlfactor=tatl_plus()),
         booster_network = expand("results/postnetwork_sclopf_Co2L{Co2factor}_sn{n_snapshots}_cost{flex_cost}_tatl{tatlfactor}.nc",
                                  Co2factor=co2_plus(), n_snapshots=config["n_snapshots"], flex_cost=flex_plus(), tatlfactor=tatl_plus())
