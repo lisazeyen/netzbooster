@@ -8,11 +8,15 @@ __pycache__/*
 *.log
 *.pdf
 old/*
+netzbooster-model/.*
 netzbooster-model/scripts/.ipynb_checkpoints/*
 netzbooster-model/scripts/old model without tatl/*
 netzbooster-model/results/*
+netzbooster-model/Co2L0.6_sn20_tatl1.0/*
+netzbooster-model/Co2L0.6_sn20_tatl1.3/*
 sim-netzbooster-model/results/*
 sim-netzbooster-model/data/.ipynb_checkpoints/*
 netzbooster-model/scripts/__pycache__/*
 *.pyc
 .snakemake/
+netzbooster.zip

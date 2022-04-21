@@ -7,6 +7,7 @@ configfile: "config.yaml"
 rule preprocess_network:
     input: config["network"]
     output: "networks/prenetwork_Co2L{Co2factor}_sn{n_snapshots}.nc"
+    resources: mem = 5000
     script: "scripts/preprocess_network.py"
 
 
@@ -28,7 +29,7 @@ rule solve_netzbooster:
     log:
         mem    = "log/seq_memory_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.log",
         gurobi = "log/seq_gurobi_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.log"
-    resources: mem= 50000 #50000
+    resources: mem = 50000 #50000
     script: "scripts/netzbooster_seq.py"
 
 
