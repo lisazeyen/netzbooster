@@ -467,6 +467,9 @@ snapshots = n.snapshots #[:15]
 branch_outages=get_branch_outages(n)
 tatl = float(snakemake.wildcards.tatlfactor)
 
+#fix n._multi_invest problem by setting it manually to 0
+n._multi_invest = 0
+
 # run lopf with netzbooster constraints and modified objective
 n = netzbooster_sclopf(n, snapshots, extra_functionality,
                        branch_outages=branch_outages, tatl=tatl)
