@@ -18,7 +18,7 @@ rule netzbooster:
         neg     = "results/p_neg_sclopf_Co2L{Co2factor}_sn{n_snapshots}"+
                   "_cost{flex_cost}_tatl{tatlfactor}.csv"
     threads: 4
-    resources: mem=10000
+    resources: mem = 50000
     script: "scripts/netzbooster_sim_tatl.py"
 
 
