@@ -1,7 +1,2 @@
 
-# flex_cost: 18100 
-
-flex_cost:
-  start: 0
-  stop: 23000
-  step: 23000 #6000
+flex_cost: [10, 6100, 12100, 18100, 23000]

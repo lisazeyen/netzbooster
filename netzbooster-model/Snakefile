@@ -33,23 +33,21 @@ rule solve_netzbooster:
     script: "scripts/netzbooster_seq.py"
 
 
-def tatl_pus():
-    cf = config["tatl_factor"]
-    return np.round(np.arange(cf["start"], cf["stop"] + cf["step"], cf["step"]),2)
-
-
-def co2_pus():
-    cf = config["co2_factor"]
-    return np.round(np.arange(cf["start"], cf["stop"] + cf["step"], cf["step"]),2)
-
-
 rule all:
     input:
-        booster     = expand("results/P_netzbooster_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.csv",
-                             Co2factor=co2_pus(), n_snapshots=config["n_snapshots"], tatlfactor=tatl_pus()),
+        booster = expand("results/P_netzbooster_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.csv",
+                         Co2factor   = config["co2_factor"],
+                         n_snapshots = config["n_snapshots"],
+                         tatlfactor  = config["tatl_factor"]),
         booster_pos = expand("results/p_pos_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.csv",
-		                     Co2factor=co2_pus(), n_snapshots=config["n_snapshots"], tatlfactor=tatl_pus()),
+		                     Co2factor   = config["co2_factor"],
+                             n_snapshots = config["n_snapshots"],
+                             tatlfactor  = config["tatl_factor"]),
         booster_neg = expand("results/p_neg_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.csv",
-		                     Co2factor=co2_pus(), n_snapshots=config["n_snapshots"], tatlfactor=tatl_pus()),
-        full        = expand("results/postnetwork_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.nc",
-		                     Co2factor=co2_pus(), n_snapshots=config["n_snapshots"], tatlfactor=tatl_pus())
+		                     Co2factor   = config["co2_factor"],
+                             n_snapshots = config["n_snapshots"],
+                             tatlfactor  = config["tatl_factor"]),
+        full = expand("results/postnetwork_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.nc",
+		              Co2factor   = config["co2_factor"],
+                      n_snapshots = config["n_snapshots"],
+                      tatlfactor  = config["tatl_factor"])

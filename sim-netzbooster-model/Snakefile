@@ -9,37 +9,42 @@ rule netzbooster:
         network  = "../netzbooster-model/networks/prenetwork_Co2L{Co2factor}_sn{n_snapshots}.nc",
         variable = "data/variables.csv"
     output:
-        network = "results/postnetwork_sclopf_Co2L{Co2factor}_sn{n_snapshots}_cost{flex_cost}_tatl{tatlfactor}.nc",
-        P       = "results/P_netzbooster_sclopf_Co2L{Co2factor}_sn{n_snapshots}_cost{flex_cost}_tatl{tatlfactor}.csv",
-        pos     = "results/p_pos_sclopf_Co2L{Co2factor}_sn{n_snapshots}_cost{flex_cost}_tatl{tatlfactor}.csv",
-        neg     = "results/p_neg_sclopf_Co2L{Co2factor}_sn{n_snapshots}_cost{flex_cost}_tatl{tatlfactor}.csv"
+        network = "results/postnetwork_sclopf_Co2L{Co2factor}_sn{n_snapshots}"+
+                  "_cost{flex_cost}_tatl{tatlfactor}.nc",
+        P       = "results/P_netzbooster_sclopf_Co2L{Co2factor}_sn{n_snapshots}"+
+                  "_cost{flex_cost}_tatl{tatlfactor}.csv",
+        pos     = "results/p_pos_sclopf_Co2L{Co2factor}_sn{n_snapshots}"+
+                   "_cost{flex_cost}_tatl{tatlfactor}.csv",
+        neg     = "results/p_neg_sclopf_Co2L{Co2factor}_sn{n_snapshots}"+
+                  "_cost{flex_cost}_tatl{tatlfactor}.csv"
     threads: 4
     resources: mem=10000
     script: "scripts/netzbooster_sim_tatl.py"
 
 
-def flex_plus():
-    cf = config["flex_cost"]
-    return np.round(np.arange(cf["start"], cf["stop"] + cf["step"], cf["step"]),2)
-
-
-def co2_plus():
-    cf = config["co2_factor"]
-    return np.round(np.arange(cf["start"], cf["stop"] + cf["step"], cf["step"]),2)
-
-
-def tatl_plus():
-    cf = config["tatl_factor"]
-    return np.round(np.arange(cf["start"], cf["stop"] + cf["step"], cf["step"]),2)
-
-
 rule all:
     input:
-        booster_P   = expand("results/P_netzbooster_sclopf_Co2L{Co2factor}_sn{n_snapshots}_cost{flex_cost}_tatl{tatlfactor}.csv",
-	                         Co2factor=co2_plus(), n_snapshots=config["n_snapshots"], flex_cost=flex_plus(), tatlfactor=tatl_plus()),
-        booster_pos = expand("results/p_pos_sclopf_Co2L{Co2factor}_sn{n_snapshots}_cost{flex_cost}_tatl{tatlfactor}.csv",
-                             Co2factor=co2_plus(), n_snapshots=config["n_snapshots"], flex_cost=flex_plus(), tatlfactor=tatl_plus()),
-        booster_neg = expand("results/p_neg_sclopf_Co2L{Co2factor}_sn{n_snapshots}_cost{flex_cost}_tatl{tatlfactor}.csv",
-                             Co2factor=co2_plus(), n_snapshots=config["n_snapshots"], flex_cost=flex_plus(), tatlfactor=tatl_plus()),
-        booster_network = expand("results/postnetwork_sclopf_Co2L{Co2factor}_sn{n_snapshots}_cost{flex_cost}_tatl{tatlfactor}.nc",
-                                 Co2factor=co2_plus(), n_snapshots=config["n_snapshots"], flex_cost=flex_plus(), tatlfactor=tatl_plus())
+        booster_P       = expand("results/P_netzbooster_sclopf_Co2L{Co2factor}_sn{n_snapshots}"+
+                                 "_cost{flex_cost}_tatl{tatlfactor}.csv",
+	                             Co2factor   = config["co2_factor"],
+                                 n_snapshots = config["n_snapshots"],
+                                 flex_cost   = config["flex_cost"],
+                                 tatlfactor  = config["tatl_factor"]),
+        booster_pos     = expand("results/p_pos_sclopf_Co2L{Co2factor}_sn{n_snapshots}"+
+                                 "_cost{flex_cost}_tatl{tatlfactor}.csv",
+                                 Co2factor   = config["co2_factor"],
+                                 n_snapshots = config["n_snapshots"],
+                                 flex_cost   = config["flex_cost"],
+                                 tatlfactor  = config["tatl_factor"]),
+        booster_neg     = expand("results/p_neg_sclopf_Co2L{Co2factor}_sn{n_snapshots}"+
+                                 "_cost{flex_cost}_tatl{tatlfactor}.csv",
+                                 Co2factor   = config["co2_factor"],
+                                 n_snapshots = config["n_snapshots"], 
+                                 flex_cost   = config["flex_cost"], 
+                                 tatlfactor  = config["tatl_factor"]),
+        booster_network = expand("results/postnetwork_sclopf_Co2L{Co2factor}_sn{n_snapshots}"+
+                                 "_cost{flex_cost}_tatl{tatlfactor}.nc",
+                                 Co2factor   = config["co2_factor"], 
+                                 n_snapshots = config["n_snapshots"], 
+                                 flex_cost   = config["flex_cost"], 
+                                 tatlfactor  = config["tatl_factor"])
