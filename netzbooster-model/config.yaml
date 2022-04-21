@@ -21,6 +21,9 @@ solver:
   GURO_PAR_BARDENSETHRESH: 200
   BarHomogeneous: 1
 
+solver_options:
+  clip_p_max_pu: 0.01
+  
 sclopf:
   pyomo: False
   solver_name: gurobi

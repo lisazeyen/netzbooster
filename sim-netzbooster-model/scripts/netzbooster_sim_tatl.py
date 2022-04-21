@@ -19,13 +19,34 @@ import sys
 sys.path.append('../netzbooster-model/scripts/')
 from contingency_tatl import add_contingency_constraints_lowmem
 
-# import network
-n = pypsa.Network(snakemake.input.network)
+if "snakemake" not in globals():
+    from vresutils import Dict
+    import yaml
+    snakemake = Dict()
+    snakemake = Dict()
+    snakemake.config = Dict()
+    with open('../../netzbooster/netzbooster-model/config.yaml', encoding='utf8') as f:
+        snakemake.config = yaml.safe_load(f)
+        config  = snakemake.config
+        snakemake.input = Dict(
+        network  = "../netzbooster-model/networks/prenetwork_Co2L0.0_sn3.nc",
+        variable = "data/variables.csv"
+        )
+        snakemake.output = Dict(
+            network = "results/postnetwork_sclopf_Co2L0.0_sn3"+
+                      "_cost{flex_cost}_tatl1.0.nc",
+            P       = "results/P_netzbooster_sclopf_Co2L0.0_sn3"+
+                      "_cost10_tatl1.0.csv",
+            pos     = "results/p_pos_sclopf_Co2L0.0_sn3"+
+                       "_cost10_tatl1.0.csv",
+            neg     = "results/p_neg_sclopf_Co2L0.0_sn3"+
+                      "_cost10_tatl1.0.csv"
+                    )
+        snakemake.wildcards = Dict(
+            tatlfactor = "1.0",
+            flex_cost="10"
+            )
 
-n.lines.s_max_pu = 1
-
-lookup = pd.read_csv(snakemake.input.variable,
-                     index_col=['component', 'variable'])
 #%%
 # functions ------------------------------------------------------------------
 def get_branch_outages(n):
@@ -388,6 +409,11 @@ def netzbooster_sclopf(n, snapshots, extra_functionality,
     # save to network for extra_functionality
     n._branch_outages = branch_outages
 
+    # to avoid numerical problems with small values
+    for df in (n.generators_t.p_max_pu, n.storage_units_t.inflow):
+            df.where(df>snakemake.config["solver_options"]['clip_p_max_pu'],
+                     other=0., inplace=True)
+
     # formulate optimisation problem ---------------------------------------------
     # include standard pypsa constraints and objective + netzbooster (extra_functionality)
     logger.info("Prepare linear problem")
@@ -450,10 +476,13 @@ def save_results_as_csv(n, snapshots):
         n.buses_t.pop(key, None)
 
 
+# import network
+n = pypsa.Network(snakemake.input.network)
 
-# import yaml
-# with open('../config.yaml', encoding='utf8') as f:
-#     snakemake.config = yaml.safe_load(f)
+n.lines.s_max_pu = 1
+
+lookup = pd.read_csv(snakemake.input.variable,
+                     index_col=['component', 'variable'])
 
 solver_options = snakemake.config["solver"]
 
