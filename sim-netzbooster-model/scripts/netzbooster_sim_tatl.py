@@ -325,7 +325,8 @@ def netzbooster_constraints(n, snapshots):
                     (1,  get_var(n, "Bus", "p_pos")),
                     (-1,  get_var(n, "Bus", "p_neg"))
                    ).groupby(level=1, axis=1).sum()
-    define_constraints(n, lhs_3, "==", 0., "Bus", "FlexBal")
+    define_constraints(n, lhs_3, "<=", 0.1, "Bus", "FlexBal_ub")
+    define_constraints(n, lhs_3, ">=", -0.1, "Bus", "FlexBal_lb")
 
     # ## |f(l,t) + LODF(l,k) * f(k,t) + sum_i ((PTDF(l,i) +  LODF(l,k) * PTDF(k,i)) * (p_neg(i,k, t) - p_pos(i,k, t)))| <= F(l)  ########
     # f(l,t) + LODF(l,k) * f(k,t) + sum_i ((PTDF(l,i) +  LODF(l,k) * PTDF(k,i))* (p_neg(i,k, t) - p_pos(i,k, t))) <= F(l)
