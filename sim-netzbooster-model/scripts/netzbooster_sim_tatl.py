@@ -15,6 +15,8 @@ import gc
 from vresutils import Dict
 import yaml
 
+from vresutils.benchmark import memory_logger
+
 import sys
 sys.path.append('../netzbooster-model/scripts/')
 from contingency_tatl import add_contingency_constraints_lowmem
@@ -476,32 +478,37 @@ def save_results_as_csv(n, snapshots):
         n.buses_t.pop(key, None)
 
 
-# import network
-n = pypsa.Network(snakemake.input.network)
+memory_log_filename = snakemake.log.mem
+gurobi_log_filename = snakemake.log.gurobi
 
-n.lines.s_max_pu = 1
+with memory_logger(filename=memory_log_filename, interval=1.) as mem:
+    # import network
+    n = pypsa.Network(snakemake.input.network)
 
-lookup = pd.read_csv(snakemake.input.variable,
-                     index_col=['component', 'variable'])
+    n.lines.s_max_pu = 1
 
-solver_options = snakemake.config["solver"]
+    lookup = pd.read_csv(snakemake.input.variable,
+                         index_col=['component', 'variable'])
 
-# solver_name = "gurobi"
-solver_name = solver_options.pop("name")
+    solver_options = snakemake.config["solver"]
 
-# for testing only consider 2 snapshots
-snapshots = n.snapshots #[:15]
+    # solver_name = "gurobi"
+    solver_name = solver_options.pop("name")
 
-# branch outages
-branch_outages=get_branch_outages(n)
-tatl = float(snakemake.wildcards.tatlfactor)
+    # for testing only consider 2 snapshots
+    snapshots = n.snapshots #[:15]
 
-#fix n._multi_invest problem by setting it manually to 0
-n._multi_invest = 0
+    # branch outages
+    branch_outages=get_branch_outages(n)
+    tatl = float(snakemake.wildcards.tatlfactor)
 
-# run lopf with netzbooster constraints and modified objective
-n = netzbooster_sclopf(n, snapshots, extra_functionality,
-                       branch_outages=branch_outages, tatl=tatl)
+    #fix n._multi_invest problem by setting it manually to 0
+    n._multi_invest = 0
+
+    # run lopf with netzbooster constraints and modified objective
+    n = netzbooster_sclopf(n, snapshots, extra_functionality,
+                           solver_logfile=gurobi_log_filename,
+                           branch_outages=branch_outages, tatl=tatl)
 
 # Netzbooster capacity P_pos (pandas Series, index = Buses)
 P_pos = n.sols.Bus.df["P_pos"]

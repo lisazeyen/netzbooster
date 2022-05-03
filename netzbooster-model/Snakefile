@@ -29,7 +29,7 @@ rule solve_netzbooster:
     log:
         mem    = "log/seq_memory_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.log",
         gurobi = "log/seq_gurobi_Co2L{Co2factor}_sn{n_snapshots}_tatl{tatlfactor}.log"
-    resources: mem = 50000 #50000
+    resources: mem = 15000 #(sn=150)
     script: "scripts/netzbooster_seq.py"
 
 
